@@ -62,6 +62,9 @@ Accepts POST requests with a JSON body containing `text`, `userId`, and `session
 
 Generic adapter for web/REST integrations. Use as a foundation for building custom adapters.
 
+## Documentationn
+Full API documentation: https://bootdesk.github.io/chat-sdk
+
 ## License
 
 MIT
