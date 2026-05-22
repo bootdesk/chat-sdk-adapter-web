@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BootDesk\ChatSDK\Web;
 
+use BootDesk\ChatSDK\Core\Author;
 use BootDesk\ChatSDK\Core\ChannelInfo;
 use BootDesk\ChatSDK\Core\FetchOptions;
 use BootDesk\ChatSDK\Core\FetchResult;
@@ -96,6 +97,17 @@ class WebAdapterConfig
             channelId: $threadId,
             messageCount: 0,
         );
+    }
+
+    /**
+     * Resolve author info (locale, language, timezone) for a user.
+     *
+     * Override to return an enriched Author with localization data from your
+     * database, session, or API.
+     */
+    public function getAuthorInfo(Author $author): Author
+    {
+        return $author;
     }
 
     /**

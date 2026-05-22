@@ -21,6 +21,7 @@ use BootDesk\ChatSDK\Core\Contracts\FileUploadConverter;
 use BootDesk\ChatSDK\Core\Contracts\FormatConverter;
 use BootDesk\ChatSDK\Core\Contracts\HandlesActions;
 use BootDesk\ChatSDK\Core\Contracts\HandlesSlashCommands;
+use BootDesk\ChatSDK\Core\Contracts\HasAuthorInfo;
 use BootDesk\ChatSDK\Core\Exceptions\AdapterException;
 use BootDesk\ChatSDK\Core\FetchOptions;
 use BootDesk\ChatSDK\Core\FetchResult;
@@ -34,7 +35,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands
+class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAuthorInfo
 {
     protected ?string $botUserId = null;
 
@@ -401,6 +402,11 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands
         return null;
     }
 
+    public function getAuthorInfo(Author $author): Author
+    {
+        return $this->config->getAuthorInfo($author);
+    }
+
     public function openDM(string $userId): ?string
     {
         $threadId = $this->encodeThreadId([
@@ -585,6 +591,7 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands
         }
 
         return [
+            'author' => new Author(id: $this->resolvedUserId ?? '', name: $this->resolvedUserName ?? ''),
             'actionId' => $action['actionId'],
             'value' => $action['value'] ?? null,
             'threadId' => $this->encodeThreadId([
@@ -631,6 +638,7 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands
         $args = $parts[1] ?? '';
 
         return [
+            'author' => new Author(id: $this->resolvedUserId ?? '', name: $this->resolvedUserName ?? ''),
             'command' => $command,
             'text' => $args,
             'userId' => $this->resolvedUserId ?? '',
