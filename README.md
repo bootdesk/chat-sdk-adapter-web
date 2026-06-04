@@ -115,13 +115,9 @@ Authentication via `$getUser` closure — receives PSR-7 ServerRequestInterface,
 WebAdapter supports real-time event broadcasting via `BroadcastAdapter`:
 
 ```php
-use BootDesk\ChatSDK\Laravel\Broadcasting\LaravelBroadcastAdapter;
+use BootDesk\ChatSDK\Core\Contracts\BroadcastAdapter;
 
-$broadcaster = new LaravelBroadcastAdapter(
-    broadcastManager: broadcast(),
-    broadcasterType: 'pusher',
-    channelPrefix: 'chat',
-);
+$broadcaster = app(BroadcastAdapter::class);
 
 $adapter = new WebAdapter(
     userName: 'Bot',
@@ -139,7 +135,7 @@ User-specific broadcasts (DMs, typing in DMs, streaming) use `broadcastToUser()`
 
 Generic adapter for web/REST integrations. Responses returned via `createResponse()` as JSON: `{id, role: "assistant", text, events: []}`.
 
-## Documentationn
+## Documentation
 
 Full API documentation: https://bootdesk.github.io/chat-sdk
 
