@@ -26,6 +26,8 @@ use BootDesk\ChatSDK\Core\Contracts\RequiresSyncResponse;
 use BootDesk\ChatSDK\Core\Exceptions\AdapterException;
 use BootDesk\ChatSDK\Core\FetchOptions;
 use BootDesk\ChatSDK\Core\FetchResult;
+use BootDesk\ChatSDK\Core\LocalizationType;
+use BootDesk\ChatSDK\Core\LocalizationValue;
 use BootDesk\ChatSDK\Core\Message;
 use BootDesk\ChatSDK\Core\PostableMessage;
 use BootDesk\ChatSDK\Core\SentMessage;
@@ -219,14 +221,21 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
             }
         }
 
+        $author = new Author(
+            id: $this->resolvedUserId ?? 'unknown',
+            name: $this->resolvedUserName ?? 'unknown',
+            isBot: false,
+        );
+
+        $localizations = $this->extractLocalizationHeaders($request);
+        if ($localizations !== []) {
+            $author = $author->withLocalizations(...$localizations);
+        }
+
         return new Message(
             id: $msgId,
             threadId: $threadId,
-            author: new Author(
-                id: $this->resolvedUserId ?? 'unknown',
-                name: $this->resolvedUserName ?? 'unknown',
-                isBot: false,
-            ),
+            author: $author,
             text: $text,
             attachments: $attachments,
             isDM: true,
@@ -541,6 +550,35 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
         $this->currentUserId = '';
     }
 
+    protected function extractLocalizationHeaders(ServerRequestInterface $request): array
+    {
+        $values = [];
+
+        $locale = $request->getHeaderLine('X-Locale');
+        if ($locale === '') {
+            $acceptLanguage = $request->getHeaderLine('Accept-Language');
+            if ($acceptLanguage !== '') {
+                $locale = explode(',', $acceptLanguage)[0];
+                $locale = explode(';', $locale)[0];
+            }
+        }
+        if ($locale !== '') {
+            $values[] = new LocalizationValue(LocalizationType::Locale, $locale);
+        }
+
+        $timezone = $request->getHeaderLine('X-Timezone');
+        if ($timezone !== '') {
+            $values[] = new LocalizationValue(LocalizationType::Timezone, $timezone);
+        }
+
+        $language = $request->getHeaderLine('X-Language');
+        if ($language !== '') {
+            $values[] = new LocalizationValue(LocalizationType::Language, $language);
+        }
+
+        return $values;
+    }
+
     protected function findLastUserMessage(array $messages): ?array
     {
         for ($i = count($messages) - 1; $i >= 0; $i--) {
@@ -591,8 +629,14 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
             return null;
         }
 
+        $author = new Author(id: $this->resolvedUserId ?? '', name: $this->resolvedUserName ?? '');
+        $localizations = $this->extractLocalizationHeaders($request);
+        if ($localizations !== []) {
+            $author = $author->withLocalizations(...$localizations);
+        }
+
         return [
-            'author' => new Author(id: $this->resolvedUserId ?? '', name: $this->resolvedUserName ?? ''),
+            'author' => $author,
             'actionId' => $action['actionId'],
             'value' => $action['value'] ?? null,
             'threadId' => $this->encodeThreadId([
@@ -638,8 +682,14 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
         $command = $parts[0];
         $args = $parts[1] ?? '';
 
+        $author = new Author(id: $this->resolvedUserId ?? '', name: $this->resolvedUserName ?? '');
+        $localizations = $this->extractLocalizationHeaders($request);
+        if ($localizations !== []) {
+            $author = $author->withLocalizations(...$localizations);
+        }
+
         return [
-            'author' => new Author(id: $this->resolvedUserId ?? '', name: $this->resolvedUserName ?? ''),
+            'author' => $author,
             'command' => $command,
             'text' => $args,
             'userId' => $this->resolvedUserId ?? '',
