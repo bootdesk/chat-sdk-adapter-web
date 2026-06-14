@@ -31,6 +31,7 @@ use BootDesk\ChatSDK\Core\LocalizationValue;
 use BootDesk\ChatSDK\Core\Message;
 use BootDesk\ChatSDK\Core\PostableMessage;
 use BootDesk\ChatSDK\Core\SentMessage;
+use BootDesk\ChatSDK\Core\Support\EmojiResolver;
 use BootDesk\ChatSDK\Core\Support\NullFileUploadConverter;
 use BootDesk\ChatSDK\Core\ThreadInfo;
 use BootDesk\ChatSDK\Core\UserInfo;
@@ -355,7 +356,7 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
         $this->broadcastEvent(new ReactionAddedEvent(
             threadId: $threadId,
             messageId: $messageId,
-            emoji: $emoji,
+            emoji: EmojiResolver::default()->toGChat($emoji),
             user: ['id' => $this->userName],
         ));
     }
@@ -365,7 +366,7 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
         $this->broadcastEvent(new ReactionRemovedEvent(
             threadId: $threadId,
             messageId: $messageId,
-            emoji: $emoji,
+            emoji: EmojiResolver::default()->toGChat($emoji),
             user: ['id' => $this->userName],
         ));
     }
