@@ -22,7 +22,7 @@ use BootDesk\ChatSDK\Core\Contracts\FormatConverter;
 use BootDesk\ChatSDK\Core\Contracts\HandlesActions;
 use BootDesk\ChatSDK\Core\Contracts\HandlesSlashCommands;
 use BootDesk\ChatSDK\Core\Contracts\HasAuthorInfo;
-use BootDesk\ChatSDK\Core\Contracts\RequiresSyncResponse;
+use BootDesk\ChatSDK\Core\Contracts\HasDynamicSyncPreference;
 use BootDesk\ChatSDK\Core\Exceptions\AdapterException;
 use BootDesk\ChatSDK\Core\FetchOptions;
 use BootDesk\ChatSDK\Core\FetchResult;
@@ -39,7 +39,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAuthorInfo, RequiresSyncResponse
+class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAuthorInfo, HasDynamicSyncPreference
 {
     protected ?string $botUserId = null;
 
@@ -96,6 +96,11 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
     public function getBotUserId(): ?string
     {
         return $this->botUserId;
+    }
+
+    public function requiresSyncResponse(): bool
+    {
+        return ! $this->asyncMode;
     }
 
     public function verifyWebhook(ServerRequestInterface $request): ?ResponseInterface

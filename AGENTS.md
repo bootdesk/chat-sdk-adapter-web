@@ -10,6 +10,11 @@ Web adapter for bootdesk/chat-sdk-core — browser chat UI via JSON request/resp
 ## registration
 `src/register.php` registers `'web' => WebAdapter::class` via `AdapterRegistry`
 
+## concurrency
+WebAdapter implements `HasDynamicSyncPreference` (not static markers like `RequiresSyncResponse`). The `asyncMode` constructor param determines behavior:
+- `asyncMode: false` (default): `requiresSyncResponse()` returns `true` — messages processed inline
+- `asyncMode: true`: `requiresSyncResponse()` returns `false` — messages deferred to configured concurrency strategy
+
 ## constructor
 ```php
 new WebAdapter(
@@ -18,7 +23,7 @@ new WebAdapter(
     ?Psr17Factory $psrFactory = null,
     ?FileUploadConverter $fileUploadConverter = null,
     ?BroadcastAdapter $broadcaster = null,            // Event broadcaster for real-time updates
-    bool $asyncMode = false,                          // true=immediate broadcast, false=accumulate
+    bool $asyncMode = false,                          // true=immediate broadcast + async concurrency, false=accumulate + sync inline
 );
 ```
 If `$config` is a string, it must be a class name extending `WebAdapterConfig`. Throws `AdapterException` if class doesn't exist.
