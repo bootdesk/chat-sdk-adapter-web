@@ -68,7 +68,7 @@ class MyAppConfig extends WebAdapterConfig
 - `editMessage`, `deleteMessage`, `addReaction`, `removeReaction` broadcast events via `BroadcastAdapter` (if provided)
 - `fetchMessages` returns empty `FetchResult`
 - `fetchChannelInfo` returns null
-- `startTyping` broadcasts to other participant (bot ↔ user)
+- `startTyping` broadcasts thread-wide via `BroadcastAdapter::broadcast()` (same channel as `postMessage`)
 - `stream` broadcasts chunks to `currentUserId`
 - `openDM` broadcasts `DirectMessageRequestedEvent` to target user
 - No HTTP client dependency (pure JSON in/out)

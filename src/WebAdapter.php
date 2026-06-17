@@ -378,13 +378,10 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
 
     public function startTyping(string $threadId): void
     {
-        $typerId = $this->currentUserId ?: $this->userName;
-        $targetUserId = ($typerId === $this->userName) ? $this->currentUserId : $this->userName;
-
         $this->broadcastEvent(new TypingStartedEvent(
             threadId: $threadId,
-            userId: $typerId,
-        ), $targetUserId);
+            userId: $this->userName,
+        ));
     }
 
     public function fetchMessages(string $threadId, ?FetchOptions $options = null): FetchResult
