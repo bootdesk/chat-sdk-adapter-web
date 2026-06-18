@@ -20,6 +20,7 @@ use BootDesk\ChatSDK\Core\Contracts\BroadcastAdapter;
 use BootDesk\ChatSDK\Core\Contracts\FileUploadConverter;
 use BootDesk\ChatSDK\Core\Contracts\FormatConverter;
 use BootDesk\ChatSDK\Core\Contracts\HandlesActions;
+use BootDesk\ChatSDK\Core\Contracts\HandlesReactions;
 use BootDesk\ChatSDK\Core\Contracts\HandlesSlashCommands;
 use BootDesk\ChatSDK\Core\Contracts\HasAuthorInfo;
 use BootDesk\ChatSDK\Core\Contracts\HasDynamicSyncPreference;
@@ -39,7 +40,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAuthorInfo, HasDynamicSyncPreference
+class WebAdapter implements Adapter, HandlesActions, HandlesReactions, HandlesSlashCommands, HasAuthorInfo, HasDynamicSyncPreference
 {
     protected ?string $botUserId = null;
 
@@ -122,6 +123,11 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
 
         // Action payloads skip message validation
         if (isset($payload['action'])) {
+            return $this->resolveUserAndConversation($payload, $request);
+        }
+
+        // Reaction payloads skip message validation
+        if (isset($payload['reaction'])) {
             return $this->resolveUserAndConversation($payload, $request);
         }
 
@@ -295,6 +301,8 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
             ? $message->content->getFallbackText()
             : (string) $message->content;
 
+        $text = EmojiResolver::convertPlaceholders($text, 'gchat');
+
         // Store attachments for JSON response
         $this->bufferedAttachments = $message->attachments;
 
@@ -332,6 +340,8 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
         $text = $message->isCard()
             ? $message->content->getFallbackText()
             : (string) $message->content;
+
+        $text = EmojiResolver::convertPlaceholders($text, 'gchat');
 
         $card = $message->isCard() ? $message->content : null;
 
@@ -653,6 +663,49 @@ class WebAdapter implements Adapter, HandlesActions, HandlesSlashCommands, HasAu
             'triggerId' => null,
             'raw' => $body,
             'callbackQueryId' => null,
+            'originId' => null,
+        ];
+    }
+
+    public function parseReaction(ServerRequestInterface $request): ?array
+    {
+        $body = (string) $request->getBody();
+        $payload = json_decode($body, true);
+
+        if (! is_array($payload) || ! isset($payload['reaction'])) {
+            return null;
+        }
+
+        $reaction = $payload['reaction'];
+
+        if (! isset($reaction['messageId'], $reaction['emoji'])) {
+            return null;
+        }
+
+        $threadId = $this->encodeThreadId([
+            'userId' => $this->resolvedUserId ?? 'unknown',
+            'conversationId' => $this->conversationId ?? $this->generateId(),
+        ]);
+
+        $author = new Author(
+            id: $this->resolvedUserId ?? '',
+            name: $this->resolvedUserName ?? '',
+        );
+
+        $localizations = $this->extractLocalizationHeaders($request);
+        if ($localizations !== []) {
+            $author = $author->withLocalizations(...$localizations);
+        }
+
+        return [
+            'author' => $author,
+            'emoji' => EmojiResolver::default()->fromGChat($reaction['emoji']),
+            'rawEmoji' => $reaction['emoji'],
+            'added' => $reaction['added'] ?? true,
+            'threadId' => $threadId,
+            'messageId' => $reaction['messageId'],
+            'userId' => $this->resolvedUserId ?? '',
+            'raw' => $payload,
             'originId' => null,
         ];
     }

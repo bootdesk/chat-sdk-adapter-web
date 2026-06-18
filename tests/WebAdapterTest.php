@@ -358,6 +358,129 @@ class WebAdapterTest extends TestCase
         $this->assertNull($this->adapter->acknowledgeAction(null));
     }
 
+    // --- Reaction handling ---
+
+    public function test_verify_reaction_payload_skips_messages_validation(): void
+    {
+        $request = $this->makeRequest([
+            'id' => 'conv-1',
+            'reaction' => [
+                'messageId' => 'msg-1',
+                'emoji' => '👍',
+                'added' => true,
+            ],
+        ]);
+
+        $response = $this->adapter->verifyWebhook($request);
+        $this->assertNull($response);
+        $this->assertTrue($this->adapter->hasResolvedUser());
+    }
+
+    public function test_verify_reaction_payload_without_conversation_id(): void
+    {
+        $request = $this->makeRequest([
+            'reaction' => [
+                'messageId' => 'msg-2',
+                'emoji' => '🎉',
+                'added' => false,
+            ],
+        ]);
+
+        $response = $this->adapter->verifyWebhook($request);
+        $this->assertNull($response);
+    }
+
+    public function test_parse_reaction_returns_correct_data(): void
+    {
+        $request = $this->makeRequest([
+            'id' => 'conv-1',
+            'reaction' => [
+                'messageId' => 'msg-123',
+                'emoji' => '👍',
+                'added' => true,
+            ],
+        ]);
+
+        $this->adapter->verifyWebhook($request);
+        $reactionData = $this->adapter->parseReaction($request);
+
+        $this->assertNotNull($reactionData);
+        $this->assertInstanceOf(Author::class, $reactionData['author']);
+        $this->assertSame('u-test', $reactionData['userId']);
+        $this->assertSame('msg-123', $reactionData['messageId']);
+        $this->assertSame('thumbs_up', $reactionData['emoji']);
+        $this->assertSame('👍', $reactionData['rawEmoji']);
+        $this->assertTrue($reactionData['added']);
+        $this->assertSame('web:u-test:conv-1', $reactionData['threadId']);
+        $this->assertArrayHasKey('raw', $reactionData);
+        $this->assertNull($reactionData['originId']);
+    }
+
+    public function test_parse_reaction_with_added_false(): void
+    {
+        $request = $this->makeRequest([
+            'id' => 'conv-2',
+            'reaction' => [
+                'messageId' => 'msg-456',
+                'emoji' => '🎉',
+                'added' => false,
+            ],
+        ]);
+
+        $this->adapter->verifyWebhook($request);
+        $reactionData = $this->adapter->parseReaction($request);
+
+        $this->assertNotNull($reactionData);
+        $this->assertFalse($reactionData['added']);
+        $this->assertSame('msg-456', $reactionData['messageId']);
+    }
+
+    public function test_parse_reaction_returns_null_without_reaction_key(): void
+    {
+        $request = $this->makeRequest([
+            'messages' => [['id' => 'm1', 'role' => 'user', 'text' => 'hi']],
+        ]);
+
+        $this->adapter->verifyWebhook($request);
+        $reactionData = $this->adapter->parseReaction($request);
+
+        $this->assertNull($reactionData);
+    }
+
+    public function test_parse_reaction_returns_null_without_message_id(): void
+    {
+        $request = $this->makeRequest([
+            'id' => 'conv-1',
+            'reaction' => [
+                'emoji' => '👍',
+                'added' => true,
+            ],
+        ]);
+
+        $this->adapter->verifyWebhook($request);
+        $reactionData = $this->adapter->parseReaction($request);
+
+        $this->assertNull($reactionData);
+    }
+
+    public function test_parse_reaction_returns_null_without_emoji(): void
+    {
+        $request = $this->makeRequest([
+            'id' => 'conv-1',
+            'reaction' => [
+                'messageId' => 'msg-1',
+                'added' => true,
+            ],
+        ]);
+
+        $this->adapter->verifyWebhook($request);
+        $reactionData = $this->adapter->parseReaction($request);
+
+        $this->assertNull($reactionData);
+    }
+
+    // --- Slash commands ---
+
     // --- Slash commands ---
 
     public function test_parse_slash_command_detects_slash(): void
