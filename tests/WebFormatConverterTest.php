@@ -24,16 +24,15 @@ class WebFormatConverterTest extends TestCase
     public function test_preserves_bold(): void
     {
         $ast = $this->converter->toAst('This is **bold** text');
-        $html = $this->converter->fromAst($ast);
-        $this->assertStringContainsString('<strong>bold</strong>', $html);
+        $markdown = $this->converter->fromAst($ast);
+        $this->assertStringContainsString('**bold**', $markdown);
     }
 
     public function test_preserves_links(): void
     {
         $ast = $this->converter->toAst('[click here](https://example.com)');
-        $html = $this->converter->fromAst($ast);
-        $this->assertStringContainsString('href="https://example.com"', $html);
-        $this->assertStringContainsString('click here', $html);
+        $markdown = $this->converter->fromAst($ast);
+        $this->assertStringContainsString('[click here](https://example.com)', $markdown);
     }
 
     public function test_roundtrip(): void
