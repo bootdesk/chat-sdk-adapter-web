@@ -39,6 +39,8 @@ use BootDesk\ChatSDK\Core\UserInfo;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class WebAdapter implements Adapter, HandlesActions, HandlesReactions, HandlesSlashCommands, HasAuthorInfo, HasDynamicSyncPreference
 {
@@ -66,6 +68,8 @@ class WebAdapter implements Adapter, HandlesActions, HandlesReactions, HandlesSl
 
     protected string $currentUserId = '';
 
+    protected readonly ?LoggerInterface $logger;
+
     public function __construct(
         protected readonly string $userName,
         WebAdapterConfig|string $config = new WebAdapterConfig,
@@ -73,7 +77,9 @@ class WebAdapter implements Adapter, HandlesActions, HandlesReactions, HandlesSl
         ?FileUploadConverter $fileUploadConverter = null,
         ?BroadcastAdapter $broadcaster = null,
         bool $asyncMode = false,
+        ?LoggerInterface $logger = null,
     ) {
+        $this->logger = $logger ?? new NullLogger;
         if (is_string($config)) {
             if (! class_exists($config)) {
                 throw new AdapterException("WebAdapter config class '{$config}' does not exist");
@@ -244,6 +250,8 @@ class WebAdapter implements Adapter, HandlesActions, HandlesReactions, HandlesSl
             $author = $author->withLocalizations(...$localizations);
         }
 
+        $this->logger->info('Web message parsed', ['threadId' => $threadId]);
+
         return new Message(
             id: $msgId,
             threadId: $threadId,
@@ -302,6 +310,8 @@ class WebAdapter implements Adapter, HandlesActions, HandlesReactions, HandlesSl
             : (string) $message->content;
 
         $text = EmojiResolver::convertPlaceholders($text, 'gchat');
+
+        $this->logger->info('Web postMessage', ['threadId' => $threadId]);
 
         // Store attachments for JSON response
         $this->bufferedAttachments = $message->attachments;
