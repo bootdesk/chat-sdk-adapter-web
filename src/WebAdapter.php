@@ -250,7 +250,10 @@ class WebAdapter implements Adapter, HandlesActions, HandlesReactions, HandlesSl
             $author = $author->withLocalizations(...$localizations);
         }
 
-        $this->logger->info('Web message parsed', ['threadId' => $threadId]);
+        $this->logger->info('Web message parsed', [
+            'threadId' => $threadId,
+            'body' => mb_substr($body, 0, 500),
+        ]);
 
         return new Message(
             id: $msgId,
